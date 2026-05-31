@@ -6,4 +6,4 @@ services:
     container_name: gesturify
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "18080:80"
