@@ -86,6 +86,7 @@ const REQUIRED_MODEL_RESOURCES = [
   `${VISION_WASM_URL}/vision_wasm_nosimd_internal.wasm`,
   `${VISION_WASM_URL}/vision_wasm_module_internal.js`,
   `${VISION_WASM_URL}/vision_wasm_module_internal.wasm`,
+  `${VISION_WASM_URL}/vision_wasm_module_raw_internal.wasm`,
 ];
 
 function getDistance(a, b) {
@@ -168,7 +169,7 @@ async function assertResourceAvailable(path) {
 async function createHandLandmarker() {
   await Promise.all(REQUIRED_MODEL_RESOURCES.map((path) => assertResourceAvailable(path)));
   const vision = await withTimeout(
-    FilesetResolver.forVisionTasks(VISION_WASM_URL),
+    FilesetResolver.forVisionTasks(VISION_WASM_URL, false),
     MODEL_INIT_TIMEOUT_MS,
     "WASM 初始化",
   );
