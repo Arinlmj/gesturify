@@ -1,0 +1,9 @@
+services:
+  gesturify:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gesturify
+    restart: unless-stopped
+    ports:
+      - "8080:80"

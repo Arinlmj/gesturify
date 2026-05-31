@@ -52,6 +52,30 @@ npm run build    # 生产构建
 npm run preview  # 预览构建产物
 ```
 
+## Docker / 极空间部署
+
+项目已提供 `Dockerfile`、`nginx.conf` 和 `docker-compose.yml`，适合在极空间 Docker 中部署为静态站点。
+
+在支持 Docker Compose 的环境中运行：
+
+```bash
+docker compose up -d --build
+```
+
+默认映射端口：
+
+```text
+宿主机 8080 -> 容器 80
+```
+
+访问地址示例：
+
+```text
+http://极空间-ip:8080/
+```
+
+注意：浏览器摄像头能力要求安全上下文。通过局域网 IP 的普通 HTTP 访问时，部分浏览器会禁止摄像头；建议在极空间上绑定 HTTPS 域名或通过反向代理启用 HTTPS。
+
 ## 摄像头与模型说明
 
 摄像头能力依赖浏览器安全上下文。本地 `127.0.0.1` 可以直接调用摄像头；线上部署时需要 HTTPS。
