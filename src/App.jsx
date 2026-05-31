@@ -82,6 +82,10 @@ const REQUIRED_MODEL_RESOURCES = [
   HAND_MODEL_URL,
   `${VISION_WASM_URL}/vision_wasm_internal.js`,
   `${VISION_WASM_URL}/vision_wasm_internal.wasm`,
+  `${VISION_WASM_URL}/vision_wasm_nosimd_internal.js`,
+  `${VISION_WASM_URL}/vision_wasm_nosimd_internal.wasm`,
+  `${VISION_WASM_URL}/vision_wasm_module_internal.js`,
+  `${VISION_WASM_URL}/vision_wasm_module_internal.wasm`,
 ];
 
 function getDistance(a, b) {
