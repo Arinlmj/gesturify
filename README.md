@@ -80,13 +80,13 @@ http://极空间-ip:18080/
 
 摄像头能力依赖浏览器安全上下文。本地 `127.0.0.1` 可以直接调用摄像头；线上部署时需要 HTTPS。
 
-手势模型使用 MediaPipe 官方模型地址加载：
+手势模型已随站点一起发布到本地静态资源：
 
 ```text
-https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+/models/hand_landmarker.task
 ```
 
-如果模型加载失败，请检查网络是否可以访问 MediaPipe WASM 与模型文件。
+MediaPipe WASM 文件也随站点发布到 `/wasm`。如果模型加载失败，请检查部署产物中是否包含 `models/` 与 `wasm/` 目录。
 
 ## 常见问题
 
