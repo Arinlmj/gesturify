@@ -76,6 +76,13 @@ const EFFECT_STYLES = [
 
 const VISION_WASM_URL = "/wasm";
 const HAND_MODEL_URL = "/models/hand_landmarker.task";
+const MODEL_INIT_TIMEOUT_MS = 25000;
+const RESOURCE_TIMEOUT_MS = 12000;
+const REQUIRED_MODEL_RESOURCES = [
+  HAND_MODEL_URL,
+  `${VISION_WASM_URL}/vision_wasm_internal.js`,
+  `${VISION_WASM_URL}/vision_wasm_internal.wasm`,
+];
 
 function getDistance(a, b) {
   const dx = a.x - b.x;
@@ -124,12 +131,47 @@ function getCameraErrorMessage(error) {
   return `摄像头启动失败：${error.name || "未知错误"}`;
 }
 
+function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`${label}超时`)), timeoutMs);
+  });
+
+  return Promise.race([promise, timeout]).finally(() => window.clearTimeout(timeoutId));
+}
+
+async function assertResourceAvailable(path) {
+  const controller = new AbortController();
+  const response = await withTimeout(
+    fetch(path, {
+      cache: "no-store",
+      headers: {
+        Range: "bytes=0-0",
+      },
+      method: "GET",
+      signal: controller.signal,
+    }),
+    RESOURCE_TIMEOUT_MS,
+    `资源访问 ${path}`,
+  );
+  controller.abort();
+
+  if (!response.ok) {
+    throw new Error(`资源访问失败：${path} (${response.status})`);
+  }
+}
+
 async function createHandLandmarker() {
-  const vision = await FilesetResolver.forVisionTasks(VISION_WASM_URL);
+  await Promise.all(REQUIRED_MODEL_RESOURCES.map((path) => assertResourceAvailable(path)));
+  const vision = await withTimeout(
+    FilesetResolver.forVisionTasks(VISION_WASM_URL),
+    MODEL_INIT_TIMEOUT_MS,
+    "WASM 初始化",
+  );
   const options = {
     baseOptions: {
       modelAssetPath: HAND_MODEL_URL,
-      delegate: "GPU",
+      delegate: "CPU",
     },
     runningMode: "VIDEO",
     numHands: 1,
@@ -138,18 +180,11 @@ async function createHandLandmarker() {
     minTrackingConfidence: 0.5,
   };
 
-  try {
-    return await HandLandmarker.createFromOptions(vision, options);
-  } catch (gpuError) {
-    console.warn("GPU 手势模型初始化失败，尝试 CPU。", gpuError);
-    return HandLandmarker.createFromOptions(vision, {
-      ...options,
-      baseOptions: {
-        ...options.baseOptions,
-        delegate: "CPU",
-      },
-    });
-  }
+  return withTimeout(
+    HandLandmarker.createFromOptions(vision, options),
+    MODEL_INIT_TIMEOUT_MS,
+    "手势模型初始化",
+  );
 }
 
 function drawHand(ctx, landmarks, width, height, gesture) {
@@ -271,7 +306,7 @@ export default function App() {
       return `${cameraMessage}。请检查浏览器地址栏摄像头权限、系统隐私设置，或确认摄像头没有被其他应用占用。`;
     }
     if (cameraState === "model-error") {
-      return "摄像头已尝试启动，但手势模型加载失败。请检查网络是否能访问 MediaPipe 模型文件。";
+      return `${cameraMessage}。请检查当前访问域名是否能打开 /models/hand_landmarker.task 与 /wasm/vision_wasm_internal.wasm。`;
     }
     if (cameraState === "loading") {
       return cameraMessage;
@@ -468,9 +503,15 @@ export default function App() {
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-      if (error.message?.includes("hand_landmarker") || error.message?.includes("MediaPipe") || error.message?.includes("WASM")) {
+      if (
+        error.message?.includes("hand_landmarker") ||
+        error.message?.includes("MediaPipe") ||
+        error.message?.includes("WASM") ||
+        error.message?.includes("模型") ||
+        error.message?.includes("资源访问")
+      ) {
         setCameraState("model-error");
-        setCameraMessage("手势模型加载失败");
+        setCameraMessage(error.message || "手势模型加载失败");
         return;
       }
       setCameraState("error");
